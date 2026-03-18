@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="screen_background">#FFF4F6FB</color>
+    <color name="card_background">#FFFFFFFF</color>
+    <color name="card_stroke">#FFE3E8F2</color>
+    <color name="title_text">#FF14213D</color>
+    <color name="subtitle_text">#FF4E5D78</color>
+    <color name="brand_primary">#FF4254F4</color>
+    <color name="brand_on_primary">#FFFFFFFF</color>
+    <color name="status_idle">#FF7C879C</color>
+    <color name="status_running">#FF2A9D8F</color>
+    <color name="status_alert">#FFE63946</color>
+    <color name="overlay_background">#F217213A</color>
+    <color name="overlay_stroke">#33FFFFFF</color>
+    <color name="overlay_title_text">#FFF8FAFF</color>
+    <color name="overlay_body_text">#FFE4E9FF</color>
+    <color name="overlay_hint_text">#FFA8B3D8</color>
+</resources>

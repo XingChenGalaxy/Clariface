@@ -1,0 +1,64 @@
+<resources>
+    <string name="app_name">Mask Mobile Offline Detector</string>
+    <string name="start_detection">开始检测</string>
+    <string name="stop_detection">停止检测</string>
+    <string name="status_idle_short">空闲</string>
+    <string name="status_running_short">检测中</string>
+    <string name="status_alert_short">疑似伪造</string>
+    <string name="probability_default">概率: 0.0000</string>
+    <string name="label_default">标签: 0</string>
+    <string name="detime_default">单帧耗时: 0 ms</string>
+    <string name="fps_default">分析 FPS: 0.0</string>
+    <string name="probability_template">概率: %.4f</string>
+    <string name="label_template">标签: %1$d</string>
+    <string name="detime_template">单帧耗时: %1$d ms</string>
+    <string name="fps_template">分析 FPS: %.1f</string>
+    <string name="instruction_idle">点击开始后授权屏幕采集，再切到腾讯会议或其他视频软件进行检测。</string>
+    <string name="instruction_running">检测已运行：可切到目标视频软件，系统会在后台持续离线分析。</string>
+    <string name="screen_permission_required">需要授权屏幕采集才能开始检测。</string>
+    <string name="overlay_permission_required">需要授权悬浮窗权限，才能显示实时检测数值。</string>
+    <string name="overlay_permission_hint">请允许“在其他应用上层显示”，用于在腾讯会议等视频应用上方显示实时结果。</string>
+    <string name="overlay_hide_button">隐藏悬浮窗</string>
+    <string name="overlay_show_button">显示悬浮窗</string>
+    <string name="overlay_now_hidden">已隐藏悬浮窗</string>
+    <string name="overlay_now_shown">已显示悬浮窗</string>
+    <string name="preview_hide_button">关闭悬浮窗预览</string>
+    <string name="preview_show_button">开启悬浮窗预览</string>
+    <string name="preview_now_hidden">已关闭悬浮窗预览</string>
+    <string name="preview_now_shown">已开启悬浮窗预览</string>
+    <string name="overlay_auto_enabled_for_start">已自动开启悬浮窗，开始检测后会显示“正在检测”。</string>
+    <string name="overlay_detecting_now">正在检测</string>
+    <string name="notification_permission_hint">建议允许通知权限，以便保持检测服务稳定运行。</string>
+    <string name="notification_channel_name">离线检测服务</string>
+    <string name="notification_title">Mask 正在检测屏幕画面</string>
+    <string name="notification_content">点击可返回应用查看实时概率、标签和 FPS。</string>
+    <string name="overlay_probability_default">概率: 0.0000</string>
+    <string name="overlay_fps_default">FPS: 0.0</string>
+    <string name="overlay_latency_default">耗时: 0 ms</string>
+    <string name="overlay_label_default">标签: 0</string>
+    <string name="overlay_probability_template">概率: %.4f</string>
+    <string name="overlay_fps_template">FPS: %.1f</string>
+    <string name="overlay_latency_template">耗时: %1$d ms</string>
+    <string name="overlay_label_template">标签: %1$d</string>
+    <string name="overlay_preview_title">悬浮窗捕获预览</string>
+    <string name="overlay_preview_off">预览已关闭（可在主界面开启）</string>
+    <string name="overlay_drag_hint">按住可拖动</string>
+    <string name="diag_default">状态: 等待开始检测</string>
+    <string name="diag_no_overlay_permission">状态: 未获得悬浮窗权限，无法显示悬浮窗。</string>
+    <string name="diag_overlay_blocked">状态: 系统拦截悬浮窗，请检查系统显示在其他应用上层设置。</string>
+    <string name="diag_projection_failed">状态: 录屏初始化失败，请重新点击开始检测。</string>
+    <string name="diag_projection_failed_with_detail">状态: 录屏初始化失败（%1$s）</string>
+    <string name="diag_service_not_running">状态: 检测服务未运行，请重试开始检测。</string>
+    <string name="diag_model_fallback">状态: 模型外部权重加载失败，已使用回退检测引擎。</string>
+    <string name="diag_running">状态: 检测运行中，切到腾讯会议后应看到悬浮窗数据。</string>
+    <string name="preview_title">捕获画面预览（每秒刷新）</string>
+    <string name="roi_waiting">ROI 状态: 等待检测</string>
+    <string name="roi_hit">ROI 状态: 已检测到人脸并使用 face ROI</string>
+    <string name="roi_miss">ROI 状态: 当前未检测到人脸，使用回退区域</string>
+    <string-array name="fps_options">
+        <item>fps10</item>
+        <item>fps20</item>
+        <item>fps30(推荐)</item>
+        <item>fps60</item>
+    </string-array>
+</resources>
