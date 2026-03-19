@@ -11,7 +11,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.ArrayAdapter
-import android.widget.ImageView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
@@ -27,9 +26,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var statusPill: TextView
     private lateinit var instructionText: TextView
     private lateinit var fpsSpinner: Spinner
+    private lateinit var modeSpinner: Spinner
     private lateinit var toggleButton: MaterialButton
     private lateinit var overlayToggleButton: MaterialButton
-    private lateinit var previewToggleButton: MaterialButton
+    private lateinit var overlayCompactToggleButton: MaterialButton
     private lateinit var probabilityText: TextView
     private lateinit var detectionTimeText: TextView
     private lateinit var fpsText: TextView
@@ -40,8 +40,9 @@ class MainActivity : AppCompatActivity() {
 
     private var isRunning = false
     private var pendingFps = 30
+    private var pendingTrackingMode = "balanced"
     private var overlayVisible = true
-    private var previewVisible = true
+    private var overlayCompact = false
     private var pendingStartAfterOverlayGrant = false
 
     private val metricsReceiver = object : BroadcastReceiver() {
@@ -113,6 +114,7 @@ class MainActivity : AppCompatActivity() {
                 putExtra(ScreenCaptureService.EXTRA_RESULT_CODE, result.resultCode)
                 putExtra(ScreenCaptureService.EXTRA_RESULT_DATA, result.data)
                 putExtra(ScreenCaptureService.EXTRA_REQUESTED_FPS, pendingFps)
+                putExtra(ScreenCaptureService.EXTRA_TRACKING_MODE, pendingTrackingMode)
             }
             ContextCompat.startForegroundService(this, serviceIntent)
             instructionText.text = getString(R.string.diag_running)
@@ -142,9 +144,10 @@ class MainActivity : AppCompatActivity() {
         statusPill = findViewById(R.id.statusPill)
         instructionText = findViewById(R.id.instructionText)
         fpsSpinner = findViewById(R.id.fpsSpinner)
+        modeSpinner = findViewById(R.id.modeSpinner)
         toggleButton = findViewById(R.id.toggleButton)
         overlayToggleButton = findViewById(R.id.overlayToggleButton)
-        previewToggleButton = findViewById(R.id.previewToggleButton)
+        overlayCompactToggleButton = findViewById(R.id.overlayCompactToggleButton)
         probabilityText = findViewById(R.id.probabilityText)
         detectionTimeText = findViewById(R.id.detectionTimeText)
         fpsText = findViewById(R.id.fpsText)
@@ -153,16 +156,18 @@ class MainActivity : AppCompatActivity() {
         errorReasonText = findViewById(R.id.errorReasonText)
         alertCard = findViewById(R.id.alertCard)
         overlayVisible = OverlaySettings.isOverlayVisible(this)
-        previewVisible = OverlaySettings.isPreviewVisible(this)
+        overlayCompact = OverlaySettings.isOverlayCompact(this)
+        pendingTrackingMode = OverlaySettings.getTrackingMode(this)
 
         setupFpsSelector()
+        setupTrackingModeSelector()
         setupToggleButton()
         setupOverlayToggleButton()
-        setupPreviewToggleButton()
+        setupOverlayCompactToggleButton()
         maybeRequestNotificationPermission()
         bindRunningState(false)
         bindOverlayButtonText()
-        bindPreviewButtonText()
+        bindOverlayCompactButtonText()
         errorReasonText.text = getString(R.string.diag_default)
         roiStatusText.text = getString(R.string.roi_waiting)
     }
@@ -213,20 +218,11 @@ class MainActivity : AppCompatActivity() {
                 instructionText.text = getString(R.string.instruction_idle)
             } else {
                 pendingFps = parseFps(fpsSpinner.selectedItem.toString())
-                ensureOverlayVisibleForNewSession()
+                pendingTrackingMode = parseTrackingMode(modeSpinner.selectedItem.toString())
+                OverlaySettings.setTrackingMode(this, pendingTrackingMode)
                 ensureOverlayPermissionThenStart()
             }
         }
-    }
-
-    private fun ensureOverlayVisibleForNewSession() {
-        if (overlayVisible) {
-            return
-        }
-        overlayVisible = true
-        OverlaySettings.setOverlayVisible(this, true)
-        bindOverlayButtonText()
-        Toast.makeText(this, getString(R.string.overlay_auto_enabled_for_start), Toast.LENGTH_SHORT).show()
     }
 
     private fun setupOverlayToggleButton() {
@@ -250,25 +246,34 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupPreviewToggleButton() {
-        previewToggleButton.setOnClickListener {
-            previewVisible = !previewVisible
-            OverlaySettings.setPreviewVisible(this, previewVisible)
-            bindPreviewButtonText()
+    private fun setupOverlayCompactToggleButton() {
+        overlayCompactToggleButton.setOnClickListener {
+            overlayCompact = !overlayCompact
+            OverlaySettings.setOverlayCompact(this, overlayCompact)
+            bindOverlayCompactButtonText()
             if (isRunning) {
                 val intent = Intent(this, ScreenCaptureService::class.java).apply {
-                    action = ScreenCaptureService.ACTION_SET_PREVIEW_VISIBILITY
-                    putExtra(ScreenCaptureService.EXTRA_PREVIEW_VISIBLE, previewVisible)
+                    action = ScreenCaptureService.ACTION_SET_OVERLAY_COMPACT
+                    putExtra(ScreenCaptureService.EXTRA_OVERLAY_COMPACT, overlayCompact)
                 }
                 startService(intent)
             }
-            val message = if (previewVisible) {
-                getString(R.string.preview_now_shown)
+            val message = if (overlayCompact) {
+                getString(R.string.overlay_compact_now_on)
             } else {
-                getString(R.string.preview_now_hidden)
+                getString(R.string.overlay_compact_now_off)
             }
             Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun setupTrackingModeSelector() {
+        val options = resources.getStringArray(R.array.tracking_mode_options)
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, options)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        modeSpinner.adapter = adapter
+        val selectedIndex = options.indexOfFirst { parseTrackingMode(it) == pendingTrackingMode }
+        modeSpinner.setSelection(if (selectedIndex >= 0) selectedIndex else 0, false)
     }
 
     private fun ensureOverlayPermissionThenStart() {
@@ -324,11 +329,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun bindPreviewButtonText() {
-        previewToggleButton.text = if (previewVisible) {
-            getString(R.string.preview_hide_button)
+    private fun bindOverlayCompactButtonText() {
+        overlayCompactToggleButton.text = if (overlayCompact) {
+            getString(R.string.overlay_compact_disable)
         } else {
-            getString(R.string.preview_show_button)
+            getString(R.string.overlay_compact_enable)
         }
     }
 
@@ -339,6 +344,10 @@ class MainActivity : AppCompatActivity() {
             raw.startsWith("fps60") -> 60
             else -> 30
         }
+    }
+
+    private fun parseTrackingMode(raw: String): String {
+        return if (raw.startsWith("极速")) "fast" else "balanced"
     }
 
     private fun bindAlertState(isAlert: Boolean) {

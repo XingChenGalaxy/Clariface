@@ -103,6 +103,17 @@
                             android:paddingStart="10dp"
                             android:paddingEnd="10dp" />
 
+                        <Spinner
+                            android:id="@+id/modeSpinner"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="8dp"
+                            android:background="@drawable/bg_spinner"
+                            android:entries="@array/tracking_mode_options"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp" />
+
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/toggleButton"
                             style="@style/Widget.Material3.Button"
@@ -123,14 +134,14 @@
                         android:text="@string/overlay_hide_button" />
 
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/previewToggleButton"
+                        android:id="@+id/overlayCompactToggleButton"
                         style="@style/Widget.Material3.Button.OutlinedButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="16dp"
                         android:layout_marginEnd="16dp"
                         android:layout_marginBottom="16dp"
-                        android:text="@string/preview_hide_button" />
+                        android:text="@string/overlay_compact_enable" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

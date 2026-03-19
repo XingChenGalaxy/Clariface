@@ -23,72 +23,49 @@
         android:textSize="11sp"
         android:textStyle="bold" />
 
-    <TextView
-        android:id="@+id/overlayProbabilityText"
+    <LinearLayout
+        android:id="@+id/overlayMetricsContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:text="@string/overlay_probability_default"
-        android:textColor="@color/overlay_title_text"
-        android:textSize="14sp"
-        android:textStyle="bold" />
+        android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/overlayFpsText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="@string/overlay_fps_default"
-        android:textColor="@color/overlay_body_text"
-        android:textSize="12sp" />
+        <TextView
+            android:id="@+id/overlayProbabilityText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="@string/overlay_probability_default"
+            android:textColor="@color/overlay_title_text"
+            android:textSize="14sp"
+            android:textStyle="bold" />
 
-    <TextView
-        android:id="@+id/overlayLatencyText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="@string/overlay_latency_default"
-        android:textColor="@color/overlay_body_text"
-        android:textSize="12sp" />
+        <TextView
+            android:id="@+id/overlayFpsText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/overlay_fps_default"
+            android:textColor="@color/overlay_body_text"
+            android:textSize="12sp" />
 
-    <TextView
-        android:id="@+id/overlayLabelText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="@string/overlay_label_default"
-        android:textColor="@color/overlay_body_text"
-        android:textSize="12sp" />
+        <TextView
+            android:id="@+id/overlayLatencyText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/overlay_latency_default"
+            android:textColor="@color/overlay_body_text"
+            android:textSize="12sp" />
 
-    <FrameLayout
-        android:id="@+id/overlayPreviewContainer"
-        android:layout_width="220dp"
-        android:layout_height="132dp"
-        android:layout_marginTop="10dp"
-        android:background="@color/screen_background">
-
-        <ImageView
-            android:id="@+id/overlayPreviewImage"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:contentDescription="@string/overlay_preview_title"
-            android:scaleType="centerCrop" />
-
-        <com.example.myapplication.overlay.RoiOverlayView
-            android:id="@+id/overlayPreviewRoi"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-    </FrameLayout>
-
-    <TextView
-        android:id="@+id/overlayPreviewOffText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:text="@string/overlay_preview_off"
-        android:textColor="@color/overlay_body_text"
-        android:textSize="12sp"
-        android:visibility="gone" />
+        <TextView
+            android:id="@+id/overlayLabelText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/overlay_label_default"
+            android:textColor="@color/overlay_body_text"
+            android:textSize="12sp" />
+    </LinearLayout>
 
     <TextView
         android:layout_width="wrap_content"

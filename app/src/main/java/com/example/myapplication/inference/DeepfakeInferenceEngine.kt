@@ -13,13 +13,15 @@ data class InferenceOutput(
     val probability: Float,
     val elapsedMs: Long,
     val roiUsed: Boolean = false,
-    val roiRect: Rect? = null
+    val roiRect: Rect? = null,
+    val faceRect: Rect? = null,
+    val validForDecision: Boolean = true
 )
 
 object InferenceEngineFactory {
-    fun create(context: Context): DeepfakeInferenceEngine {
+    fun create(context: Context, trackingMode: TrackingMode): DeepfakeInferenceEngine {
         return try {
-            OnnxDeepfakeInferenceEngine(context)
+            OnnxDeepfakeInferenceEngine(context, trackingMode = trackingMode)
         } catch (_: Exception) {
             // Keep app runnable even before model conversion is ready.
             FallbackHeuristicInferenceEngine()

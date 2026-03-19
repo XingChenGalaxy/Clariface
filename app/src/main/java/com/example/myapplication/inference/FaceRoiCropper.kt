@@ -18,20 +18,27 @@ import kotlin.math.sqrt
 
 class FaceRoiCropper(
     context: Context,
-    private val detectScale: Double = 0.5,
-    private val detectEveryNFrames: Int = 10,
-    private val smoothingAlpha: Float = 0.3f,
-    private val maxAllowedShiftRatio: Float = 1.2f,
-    private val noFaceFramesThreshold: Int = 10,
-    private val minFaceAreaRatio: Float = 0.012f,
-    private val maxFaceAreaRatio: Float = 0.55f
+    mode: TrackingMode = TrackingMode.BALANCED
 ) {
+    private val detectScale: Double = mode.detectScale
+    private val detectEveryNFrames: Int = mode.detectEveryNFrames
+    private val smoothingAlpha: Float = mode.smoothingAlpha
+    private val maxAllowedShiftRatio: Float = mode.maxAllowedShiftRatio
+    private val noFaceFramesThreshold: Int = mode.noFaceFramesThreshold
+    private val stableDetectionsRequired: Int = mode.stableDetectionsRequired
+    private val minFaceAreaRatio: Float = mode.minFaceAreaRatio
+    private val maxFaceAreaRatio: Float = mode.maxFaceAreaRatio
+    private val minFaceEdgePx: Int = mode.minFaceEdgePx
+    private val minNeighbors: Int = mode.minNeighbors
+    private val minDetectSizePx: Double = mode.minDetectSizePx
+
     private val classifier: CascadeClassifier? = loadClassifier(context)
 
     private var frameIndex = 0
     private var lastDetectedRect: Rect? = null
     private var smoothedRect: Rect? = null
     private var noFaceFrames = 0
+    private var stableDetections = 0
 
     fun extract(source: Bitmap): CropResult {
         frameIndex += 1
@@ -40,6 +47,11 @@ class FaceRoiCropper(
             val faces = detectFaces(source)
             val chosen = selectStableFace(faces, lastDetectedRect)
             if (chosen != null) {
+                stableDetections = if (isConsistentWithPrevious(chosen, lastDetectedRect)) {
+                    stableDetections + 1
+                } else {
+                    1
+                }
                 lastDetectedRect = chosen
                 noFaceFrames = 0
             } else {
@@ -51,16 +63,20 @@ class FaceRoiCropper(
             lastDetectedRect = null
             smoothedRect = null
             noFaceFrames = 0
+            stableDetections = 0
         }
 
         if (lastDetectedRect != null) {
             smoothedRect = smoothRect(smoothedRect, lastDetectedRect!!, smoothingAlpha)
         }
 
-        val roi = smoothedRect?.let { expandCropRect(it, source.width, source.height) }
-        if (roi == null) {
+        if (stableDetections < stableDetectionsRequired || smoothedRect == null) {
             return CropResult(bitmap = source, roiUsed = false, roiRect = null)
         }
+
+        val faceRect = Rect(smoothedRect!!)
+
+        val roi = expandCropRect(faceRect, source.width, source.height)
 
         val clamped = Rect(
             roi.left.coerceIn(0, source.width - 1),
@@ -69,15 +85,23 @@ class FaceRoiCropper(
             roi.bottom.coerceIn(1, source.height)
         )
         if (clamped.width() <= 1 || clamped.height() <= 1) {
-            return CropResult(bitmap = source, roiUsed = false, roiRect = null)
+            return CropResult(bitmap = source, roiUsed = false, roiRect = null, faceRect = null)
         }
         if (clamped.left == 0 && clamped.top == 0 && clamped.right == source.width && clamped.bottom == source.height) {
-            return CropResult(bitmap = source, roiUsed = false, roiRect = null)
+            return CropResult(bitmap = source, roiUsed = false, roiRect = null, faceRect = null)
         }
+        val faceClamped = Rect(
+            faceRect.left.coerceIn(0, source.width - 1),
+            faceRect.top.coerceIn(0, source.height - 1),
+            faceRect.right.coerceIn(1, source.width),
+            faceRect.bottom.coerceIn(1, source.height)
+        ).takeIf { it.width() > 1 && it.height() > 1 }
+
         return CropResult(
             bitmap = Bitmap.createBitmap(source, clamped.left, clamped.top, clamped.width(), clamped.height()),
             roiUsed = true,
-            roiRect = clamped
+            roiRect = clamped,
+            faceRect = faceClamped
         )
     }
 
@@ -100,9 +124,9 @@ class FaceRoiCropper(
                 gray,
                 found,
                 1.1,
-                5,
+                minNeighbors,
                 0,
-                Size(30.0, 30.0),
+                Size(minDetectSizePx, minDetectSizePx),
                 Size()
             )
 
@@ -146,16 +170,28 @@ class FaceRoiCropper(
             }
         }
 
-        // Match desktop behavior: keep previous ROI when all candidates fail gating.
+        // Keep previous box during short pose changes/occlusions; reset logic handles stale boxes.
         return best ?: previousRect
     }
 
     private fun isReasonableFaceRect(rect: Rect, sourceW: Int, sourceH: Int): Boolean {
         if (rect.width() <= 0 || rect.height() <= 0) return false
-        val areaRatio = rectArea(rect) / (sourceW * sourceH).coerceAtLeast(1).toFloat()
+        if (rect.width() < minFaceEdgePx || rect.height() < minFaceEdgePx) return false
+
+        val frameArea = (sourceW * sourceH).coerceAtLeast(1).toFloat()
+        val areaRatio = rectArea(rect) / frameArea
         if (areaRatio !in minFaceAreaRatio..maxFaceAreaRatio) return false
-        val ratio = rect.width().toFloat() / rect.height().toFloat()
-        return ratio in 0.65f..1.45f
+
+        val aspect = rect.width().toFloat() / rect.height().toFloat()
+        return aspect in 0.6f..1.6f
+    }
+
+    private fun isConsistentWithPrevious(current: Rect, previous: Rect?): Boolean {
+        if (previous == null) return false
+        val prevArea = rectArea(previous).coerceAtLeast(1f)
+        val dist = distance(rectCenter(current), rectCenter(previous))
+        val areaRatio = rectArea(current) / prevArea
+        return dist < sqrt(prevArea) * maxAllowedShiftRatio && areaRatio in 0.5f..2.0f
     }
 
     private fun smoothRect(previous: Rect?, current: Rect, alpha: Float): Rect {
@@ -219,9 +255,60 @@ class FaceRoiCropper(
     }
 }
 
+enum class TrackingMode(
+    val raw: String,
+    val detectScale: Double,
+    val detectEveryNFrames: Int,
+    val smoothingAlpha: Float,
+    val maxAllowedShiftRatio: Float,
+    val noFaceFramesThreshold: Int,
+    val stableDetectionsRequired: Int,
+    val minFaceAreaRatio: Float,
+    val maxFaceAreaRatio: Float,
+    val minFaceEdgePx: Int,
+    val minNeighbors: Int,
+    val minDetectSizePx: Double
+) {
+    BALANCED(
+        raw = "balanced",
+        detectScale = 0.65,
+        detectEveryNFrames = 2,
+        smoothingAlpha = 0.55f,
+        maxAllowedShiftRatio = 1.0f,
+        noFaceFramesThreshold = 4,
+        stableDetectionsRequired = 1,
+        minFaceAreaRatio = 0.012f,
+        maxFaceAreaRatio = 0.60f,
+        minFaceEdgePx = 56,
+        minNeighbors = 6,
+        minDetectSizePx = 48.0
+    ),
+    FAST(
+        raw = "fast",
+        detectScale = 0.75,
+        detectEveryNFrames = 1,
+        smoothingAlpha = 0.72f,
+        maxAllowedShiftRatio = 1.25f,
+        noFaceFramesThreshold = 3,
+        stableDetectionsRequired = 1,
+        minFaceAreaRatio = 0.008f,
+        maxFaceAreaRatio = 0.65f,
+        minFaceEdgePx = 40,
+        minNeighbors = 4,
+        minDetectSizePx = 36.0
+    );
+
+    companion object {
+        fun fromRaw(raw: String?): TrackingMode {
+            return entries.firstOrNull { it.raw == raw } ?: BALANCED
+        }
+    }
+}
+
 data class CropResult(
     val bitmap: Bitmap,
     val roiUsed: Boolean,
-    val roiRect: Rect?
+    val roiRect: Rect?,
+    val faceRect: Rect? = null
 )
 

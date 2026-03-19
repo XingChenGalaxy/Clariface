@@ -2,7 +2,6 @@ package com.example.myapplication.overlay
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.os.Build
@@ -13,7 +12,6 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.example.myapplication.R
@@ -41,69 +39,89 @@ class OverlayWindowController(private val context: Context) {
         y = 180
     }
 
+    private val roiLayerParams = WindowManager.LayoutParams(
+        WindowManager.LayoutParams.MATCH_PARENT,
+        WindowManager.LayoutParams.MATCH_PARENT,
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            @Suppress("DEPRECATION")
+            WindowManager.LayoutParams.TYPE_PHONE
+        },
+        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+        PixelFormat.TRANSLUCENT
+    ).apply {
+        gravity = Gravity.TOP or Gravity.START
+        x = 0
+        y = 0
+    }
+
     private var rootView: View? = null
+    private var screenRoiView: RoiOverlayView? = null
+    private var metricsVisible = true
+    private var compactMode = false
     private var probabilityText: TextView? = null
     private var fpsText: TextView? = null
     private var latencyText: TextView? = null
     private var labelText: TextView? = null
     private var statusText: TextView? = null
-    private var previewContainer: View? = null
-    private var previewOffText: TextView? = null
-    private var previewImage: ImageView? = null
-    private var previewRoi: RoiOverlayView? = null
-    private var lastPreviewBitmap: Bitmap? = null
-    private var previewEnabled = true
+    private var metricsContainer: View? = null
 
     fun show() {
-        if (rootView != null) {
-            showDetectingState()
-            return
-        }
-        runCatching {
-            val view = LayoutInflater.from(context).inflate(R.layout.view_overlay_metrics, null)
-            bindViews(view)
-            enableDrag(view)
-            windowManager.addView(view, layoutParams)
-            view
-        }
-            .onSuccess {
-                rootView = it
-                showDetectingState()
-                setPreviewVisible(previewEnabled)
-            }
-            .onFailure {
-                rootView = null
-            }
+        ensureScreenRoiLayer()
+        if (!metricsVisible) return
+        ensureMetricsCard()
+        showDetectingState()
     }
 
-    fun isShowing(): Boolean = rootView != null
+    fun isShowing(): Boolean = rootView != null || screenRoiView != null
 
     fun hide() {
-        val view = rootView ?: return
-        runCatching { windowManager.removeView(view) }
+        rootView?.let { view ->
+            runCatching { windowManager.removeView(view) }
+        }
         rootView = null
-        previewImage = null
-        previewRoi = null
-        previewContainer = null
-        previewOffText = null
-        lastPreviewBitmap?.recycle()
-        lastPreviewBitmap = null
+        screenRoiView?.let { roiView ->
+            runCatching { windowManager.removeView(roiView) }
+        }
+        screenRoiView = null
+        metricsContainer = null
     }
 
-    fun setPreviewVisible(visible: Boolean) {
-        previewEnabled = visible
+    fun setMetricsVisible(visible: Boolean) {
+        metricsVisible = visible
         if (Looper.myLooper() == Looper.getMainLooper()) {
-            applyPreviewVisibility()
+            applyMetricsVisibility()
         } else {
-            mainHandler.post { applyPreviewVisibility() }
+            mainHandler.post { applyMetricsVisibility() }
+        }
+    }
+
+    fun setCompactMode(compact: Boolean) {
+        compactMode = compact
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            applyCompactMode()
+        } else {
+            mainHandler.post { applyCompactMode() }
         }
     }
 
     fun showDetectingState() {
-        if (rootView == null) return
-        statusText?.text = context.getString(R.string.overlay_detecting_now)
-        statusText?.setBackgroundResource(R.drawable.bg_status_running)
-        statusText?.setTextColor(ContextCompat.getColor(context, R.color.white))
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            applyDetectingState()
+        } else {
+            mainHandler.post { applyDetectingState() }
+        }
+    }
+
+    fun showWaitingFaceState() {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            applyWaitingFaceState()
+        } else {
+            mainHandler.post { applyWaitingFaceState() }
+        }
     }
 
     fun update(probability: Float, fps: Float, latencyMs: Long, label: Int, isAlert: Boolean) {
@@ -114,16 +132,21 @@ class OverlayWindowController(private val context: Context) {
         }
     }
 
-    fun updatePreview(bitmap: Bitmap, roiRect: Rect?) {
+    fun updateTrackedFaceRect(rect: Rect?) {
         if (Looper.myLooper() == Looper.getMainLooper()) {
-            updatePreviewUi(bitmap, roiRect)
+            ensureScreenRoiLayer()
+            screenRoiView?.updateRoi(rect)
         } else {
-            mainHandler.post { updatePreviewUi(bitmap, roiRect) }
+            mainHandler.post {
+                ensureScreenRoiLayer()
+                screenRoiView?.updateRoi(rect)
+            }
         }
     }
 
     private fun updateUi(probability: Float, fps: Float, latencyMs: Long, label: Int, isAlert: Boolean) {
         if (rootView == null) return
+        if (compactMode) return
         probabilityText?.text = context.getString(R.string.overlay_probability_template, probability)
         fpsText?.text = context.getString(R.string.overlay_fps_template, fps)
         latencyText?.text = context.getString(R.string.overlay_latency_template, latencyMs)
@@ -133,16 +156,18 @@ class OverlayWindowController(private val context: Context) {
         statusText?.setTextColor(ContextCompat.getColor(context, R.color.white))
     }
 
-    private fun updatePreviewUi(bitmap: Bitmap, roiRect: Rect?) {
-        if (rootView == null || !previewEnabled) {
-            bitmap.recycle()
-            return
-        }
-        val old = lastPreviewBitmap
-        previewImage?.setImageBitmap(bitmap)
-        previewRoi?.updateRoi(roiRect)
-        lastPreviewBitmap = bitmap
-        old?.recycle()
+    private fun applyDetectingState() {
+        if (rootView == null) return
+        statusText?.text = context.getString(R.string.overlay_detecting_now)
+        statusText?.setBackgroundResource(R.drawable.bg_status_running)
+        statusText?.setTextColor(ContextCompat.getColor(context, R.color.white))
+    }
+
+    private fun applyWaitingFaceState() {
+        if (rootView == null) return
+        statusText?.text = context.getString(R.string.overlay_waiting_face)
+        statusText?.setBackgroundResource(R.drawable.bg_status_idle)
+        statusText?.setTextColor(ContextCompat.getColor(context, R.color.white))
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -182,22 +207,48 @@ class OverlayWindowController(private val context: Context) {
         latencyText = view.findViewById(R.id.overlayLatencyText)
         labelText = view.findViewById(R.id.overlayLabelText)
         statusText = view.findViewById(R.id.overlayStatusPill)
-        previewContainer = view.findViewById(R.id.overlayPreviewContainer)
-        previewOffText = view.findViewById(R.id.overlayPreviewOffText)
-        previewImage = view.findViewById(R.id.overlayPreviewImage)
-        previewRoi = view.findViewById(R.id.overlayPreviewRoi)
+        metricsContainer = view.findViewById(R.id.overlayMetricsContainer)
     }
 
-    private fun applyPreviewVisibility() {
-        if (rootView == null) return
-        previewContainer?.visibility = if (previewEnabled) View.VISIBLE else View.GONE
-        previewOffText?.visibility = if (previewEnabled) View.GONE else View.VISIBLE
-        if (!previewEnabled) {
-            previewImage?.setImageDrawable(null)
-            previewRoi?.updateRoi(null)
-            lastPreviewBitmap?.recycle()
-            lastPreviewBitmap = null
+    private fun ensureMetricsCard() {
+        if (rootView != null) return
+        runCatching {
+            val view = LayoutInflater.from(context).inflate(R.layout.view_overlay_metrics, null)
+            bindViews(view)
+            enableDrag(view)
+            windowManager.addView(view, layoutParams)
+            rootView = view
+            applyCompactMode()
+        }.onFailure {
+            rootView = null
         }
+    }
+
+    private fun ensureScreenRoiLayer() {
+        if (screenRoiView != null) return
+        val roiView = RoiOverlayView(context).apply {
+            setFillEnabled(false)
+            updateRoi(null)
+        }
+        runCatching {
+            windowManager.addView(roiView, roiLayerParams)
+            screenRoiView = roiView
+        }
+    }
+
+    private fun applyMetricsVisibility() {
+        if (metricsVisible) {
+            ensureMetricsCard()
+            showDetectingState()
+        } else {
+            rootView?.let { view -> runCatching { windowManager.removeView(view) } }
+            rootView = null
+        }
+    }
+
+    private fun applyCompactMode() {
+        if (rootView == null) return
+        metricsContainer?.visibility = if (compactMode) View.GONE else View.VISIBLE
     }
 }
 
