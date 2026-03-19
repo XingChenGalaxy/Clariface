@@ -12,13 +12,15 @@ import kotlin.math.exp
 
 class OnnxDeepfakeInferenceEngine(
     private val context: Context,
-    private val assetModelPath: String = "models/best_model.onnx"
+    private val assetModelPath: String = "models/best_model.onnx",
+    trackingMode: TrackingMode = TrackingMode.BALANCED
 ) : DeepfakeInferenceEngine {
 
     private val environment = OrtEnvironment.getEnvironment()
     private val session: OrtSession
     private val inputName: String
-    private val faceRoiCropper = FaceRoiCropper(context)
+    private val faceRoiCropper = FaceRoiCropper(context, mode = trackingMode)
+    private var lastProbability = 0.5f
 
     init {
         val modelFile = copyAssetToCache(assetModelPath)
@@ -29,7 +31,20 @@ class OnnxDeepfakeInferenceEngine(
 
     override fun infer(bitmap: Bitmap): InferenceOutput {
         val start = System.nanoTime()
-        val preprocess = preprocess(bitmap)
+        val cropResult = faceRoiCropper.extract(bitmap)
+        if (!cropResult.roiUsed || cropResult.roiRect == null) {
+            val elapsed = (System.nanoTime() - start) / 1_000_000L
+            return InferenceOutput(
+                probability = lastProbability,
+                elapsedMs = elapsed,
+                roiUsed = false,
+                roiRect = null,
+                faceRect = null,
+                validForDecision = false
+            )
+        }
+
+        val preprocess = preprocess(cropResult)
         val input = preprocess.input
         val shape = longArrayOf(1L, 3L, 256L, 256L)
 
@@ -38,12 +53,15 @@ class OnnxDeepfakeInferenceEngine(
             output.use {
                 val raw = readFirstLogit(output[0].value)
                 val probability = sigmoid(raw)
+                lastProbability = probability
                 val elapsed = (System.nanoTime() - start) / 1_000_000L
                     return InferenceOutput(
                         probability = probability,
                         elapsedMs = elapsed,
                         roiUsed = preprocess.roiUsed,
-                        roiRect = preprocess.roiRect
+                        roiRect = preprocess.roiRect,
+                        faceRect = preprocess.faceRect,
+                        validForDecision = true
                     )
             }
         }
@@ -54,13 +72,10 @@ class OnnxDeepfakeInferenceEngine(
         environment.close()
     }
 
-    private fun preprocess(bitmap: Bitmap): PreprocessResult {
-        val cropResult = faceRoiCropper.extract(bitmap)
+    private fun preprocess(cropResult: CropResult): PreprocessResult {
         val roiBitmap = cropResult.bitmap
         val scaled = Bitmap.createScaledBitmap(roiBitmap, 256, 256, true)
-        if (roiBitmap !== bitmap) {
-            roiBitmap.recycle()
-        }
+        roiBitmap.recycle()
         val pixels = IntArray(256 * 256)
         scaled.getPixels(pixels, 0, 256, 0, 0, 256, 256)
         scaled.recycle()
@@ -79,13 +94,19 @@ class OnnxDeepfakeInferenceEngine(
             out[256 * 256 + i] = (g - mean[1]) / std[1]
             out[2 * 256 * 256 + i] = (b - mean[2]) / std[2]
         }
-        return PreprocessResult(input = out, roiUsed = cropResult.roiUsed, roiRect = cropResult.roiRect)
+        return PreprocessResult(
+            input = out,
+            roiUsed = cropResult.roiUsed,
+            roiRect = cropResult.roiRect,
+            faceRect = cropResult.faceRect
+        )
     }
 
     private data class PreprocessResult(
         val input: FloatArray,
         val roiUsed: Boolean,
-        val roiRect: Rect?
+        val roiRect: Rect?,
+        val faceRect: Rect?
     )
 
     private fun readFirstLogit(value: Any?): Float {

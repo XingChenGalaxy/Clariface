@@ -1,5 +1,23 @@
 <resources>
-    <string name="app_name">Mask Mobile Offline Detector</string>
+    <string name="app_name">Clariface</string>
+    <string name="tips_title">Tips</string>
+    <string name="open_settings">设置</string>
+    <string name="settings_title">检测设置</string>
+    <string name="settings_subtitle">在这里调整 FPS、跟踪模式和悬浮窗显示策略。</string>
+    <string name="settings_analysis_section">分析参数</string>
+    <string name="settings_overlay_section">悬浮窗控制</string>
+    <string name="settings_display_section">显示设置</string>
+    <string name="swipe_hint">左右滑动切换</string>
+    <string name="nav_home">首页</string>
+    <string name="nav_settings">设置</string>
+    <string name="settings_fps">分析帧率</string>
+    <string name="settings_mode">跟踪模式</string>
+    <string name="settings_saved">设置已保存</string>
+    <string name="back">返回</string>
+    <string name="save">保存</string>
+    <string name="control_panel_title">控制面板</string>
+    <string name="realtime_metrics_title">实时检测指标</string>
+    <string name="diag_title">诊断信息</string>
     <string name="start_detection">开始检测</string>
     <string name="stop_detection">停止检测</string>
     <string name="status_idle_short">空闲</string>
@@ -22,15 +40,15 @@
     <string name="overlay_show_button">显示悬浮窗</string>
     <string name="overlay_now_hidden">已隐藏悬浮窗</string>
     <string name="overlay_now_shown">已显示悬浮窗</string>
-    <string name="preview_hide_button">关闭悬浮窗预览</string>
-    <string name="preview_show_button">开启悬浮窗预览</string>
-    <string name="preview_now_hidden">已关闭悬浮窗预览</string>
-    <string name="preview_now_shown">已开启悬浮窗预览</string>
-    <string name="overlay_auto_enabled_for_start">已自动开启悬浮窗，开始检测后会显示“正在检测”。</string>
+    <string name="overlay_compact_enable">开启悬浮窗精简模式</string>
+    <string name="overlay_compact_disable">关闭悬浮窗精简模式</string>
+    <string name="overlay_compact_now_on">已开启精简模式（仅显示状态）</string>
+    <string name="overlay_compact_now_off">已关闭精简模式</string>
     <string name="overlay_detecting_now">正在检测</string>
+    <string name="overlay_waiting_face">检测中（等待稳定人脸）</string>
     <string name="notification_permission_hint">建议允许通知权限，以便保持检测服务稳定运行。</string>
     <string name="notification_channel_name">离线检测服务</string>
-    <string name="notification_title">Mask 正在检测屏幕画面</string>
+    <string name="notification_title">Clariface 正在检测屏幕画面</string>
     <string name="notification_content">点击可返回应用查看实时概率、标签和 FPS。</string>
     <string name="overlay_probability_default">概率: 0.0000</string>
     <string name="overlay_fps_default">FPS: 0.0</string>
@@ -40,8 +58,6 @@
     <string name="overlay_fps_template">FPS: %.1f</string>
     <string name="overlay_latency_template">耗时: %1$d ms</string>
     <string name="overlay_label_template">标签: %1$d</string>
-    <string name="overlay_preview_title">悬浮窗捕获预览</string>
-    <string name="overlay_preview_off">预览已关闭（可在主界面开启）</string>
     <string name="overlay_drag_hint">按住可拖动</string>
     <string name="diag_default">状态: 等待开始检测</string>
     <string name="diag_no_overlay_permission">状态: 未获得悬浮窗权限，无法显示悬浮窗。</string>
@@ -51,14 +67,17 @@
     <string name="diag_service_not_running">状态: 检测服务未运行，请重试开始检测。</string>
     <string name="diag_model_fallback">状态: 模型外部权重加载失败，已使用回退检测引擎。</string>
     <string name="diag_running">状态: 检测运行中，切到腾讯会议后应看到悬浮窗数据。</string>
-    <string name="preview_title">捕获画面预览（每秒刷新）</string>
     <string name="roi_waiting">ROI 状态: 等待检测</string>
     <string name="roi_hit">ROI 状态: 已检测到人脸并使用 face ROI</string>
-    <string name="roi_miss">ROI 状态: 当前未检测到人脸，使用回退区域</string>
+    <string name="roi_miss">ROI 状态: 当前未检测到稳定人脸，本帧已跳过推理</string>
     <string-array name="fps_options">
         <item>fps10</item>
         <item>fps20</item>
-        <item>fps30(推荐)</item>
+        <item>fps30</item>
         <item>fps60</item>
+    </string-array>
+    <string-array name="tracking_mode_options">
+        <item>平衡模式</item>
+        <item>极速模式</item>
     </string-array>
 </resources>

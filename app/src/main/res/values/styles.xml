@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Widget.Clariface.Card" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardBackgroundColor">@color/card_background</item>
+        <item name="cardCornerRadius">22dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeColor">@color/card_stroke</item>
+        <item name="strokeWidth">1dp</item>
+    </style>
+
+    <style name="Widget.Clariface.Card.Hero" parent="Widget.Clariface.Card">
+        <item name="cardBackgroundColor">@color/card_background_emphasis</item>
+        <item name="strokeColor">@color/card_stroke_emphasis</item>
+    </style>
+
+    <style name="Widget.Clariface.StatusPill" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Widget.Clariface.Button.Primary" parent="Widget.Material3.Button">
+        <item name="android:textStyle">bold</item>
+        <item name="android:minHeight">50dp</item>
+        <item name="cornerRadius">14dp</item>
+        <item name="backgroundTint">@color/brand_primary</item>
+        <item name="android:textColor">@color/brand_on_primary</item>
+        <item name="android:stateListAnimator">@animator/button_press_scale</item>
+    </style>
+
+    <style name="Widget.Clariface.Button.Secondary" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:minHeight">48dp</item>
+        <item name="cornerRadius">12dp</item>
+        <item name="strokeColor">@color/button_outline</item>
+        <item name="android:textColor">@color/button_text_secondary</item>
+        <item name="android:stateListAnimator">@animator/button_press_scale</item>
+    </style>
+
+    <style name="Widget.Clariface.Button.StartHero" parent="Widget.Material3.Button">
+        <item name="android:textStyle">bold</item>
+        <item name="backgroundTint">@color/start_button_primary</item>
+        <item name="android:textColor">@color/brand_on_primary</item>
+        <item name="cornerRadius">100dp</item>
+        <item name="strokeColor">@color/start_button_stroke</item>
+        <item name="strokeWidth">2dp</item>
+        <item name="android:elevation">10dp</item>
+        <item name="rippleColor">@color/start_button_ripple</item>
+        <item name="android:letterSpacing">0.02</item>
+        <item name="android:stateListAnimator">@animator/button_press_scale</item>
+    </style>
+
+    <style name="TextAppearance.Clariface.SectionTitle" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textColor">@color/title_text</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.Clariface.Metric.Highlight" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textColor">@color/metric_highlight</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="TextAppearance.Clariface.Metric" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textColor">@color/subtitle_text</item>
+    </style>
+
+    <style name="TextAppearance.Clariface.Metric.Subtle" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textColor">@color/subtitle_text_subtle</item>
+    </style>
+
+</resources>
+

@@ -25,6 +25,12 @@ class RoiOverlayView @JvmOverloads constructor(
     }
 
     private var roiRect: Rect? = null
+    private var fillEnabled: Boolean = true
+
+    fun setFillEnabled(enabled: Boolean) {
+        fillEnabled = enabled
+        invalidate()
+    }
 
     fun updateRoi(rect: Rect?) {
         roiRect = rect?.let { Rect(it) }
@@ -37,7 +43,9 @@ class RoiOverlayView @JvmOverloads constructor(
         if (rect.width() <= 0 || rect.height() <= 0) {
             return
         }
-        canvas.drawRect(rect, backgroundPaint)
+        if (fillEnabled) {
+            canvas.drawRect(rect, backgroundPaint)
+        }
         canvas.drawRect(rect, strokePaint)
     }
 }

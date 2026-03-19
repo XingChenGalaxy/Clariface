@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
+    android:layout_margin="10dp"
     android:background="@drawable/bg_overlay_card"
-    android:elevation="6dp"
-    android:minWidth="210dp"
+    android:elevation="10dp"
+    android:minWidth="220dp"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="14dp"
+    tools:ignore="SmallSp"
+    tools:showIn="@layout/preview_overlay_metrics"
+    tools:theme="@style/Theme.MyApplication">
 
     <TextView
         android:id="@+id/overlayStatusPill"
@@ -20,75 +24,57 @@
         android:paddingBottom="4dp"
         android:text="@string/overlay_detecting_now"
         android:textColor="@color/white"
-        android:textSize="11sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/overlayProbabilityText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:text="@string/overlay_probability_default"
-        android:textColor="@color/overlay_title_text"
-        android:textSize="14sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/overlayFpsText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="@string/overlay_fps_default"
-        android:textColor="@color/overlay_body_text"
-        android:textSize="12sp" />
-
-    <TextView
-        android:id="@+id/overlayLatencyText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="@string/overlay_latency_default"
-        android:textColor="@color/overlay_body_text"
-        android:textSize="12sp" />
-
-    <TextView
-        android:id="@+id/overlayLabelText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:text="@string/overlay_label_default"
-        android:textColor="@color/overlay_body_text"
-        android:textSize="12sp" />
-
-    <FrameLayout
-        android:id="@+id/overlayPreviewContainer"
-        android:layout_width="220dp"
-        android:layout_height="132dp"
-        android:layout_marginTop="10dp"
-        android:background="@color/screen_background">
-
-        <ImageView
-            android:id="@+id/overlayPreviewImage"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:contentDescription="@string/overlay_preview_title"
-            android:scaleType="centerCrop" />
-
-        <com.example.myapplication.overlay.RoiOverlayView
-            android:id="@+id/overlayPreviewRoi"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
-    </FrameLayout>
-
-    <TextView
-        android:id="@+id/overlayPreviewOffText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:text="@string/overlay_preview_off"
-        android:textColor="@color/overlay_body_text"
         android:textSize="12sp"
-        android:visibility="gone" />
+        android:textStyle="bold"
+        tools:text="正在检测" />
+
+    <LinearLayout
+        android:id="@+id/overlayMetricsContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/overlayProbabilityText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="@string/overlay_probability_default"
+            android:textColor="@color/overlay_title_text"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            tools:text="概率: 0.9523" />
+
+        <TextView
+            android:id="@+id/overlayFpsText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/overlay_fps_default"
+            android:textColor="@color/overlay_body_text"
+            android:textSize="13sp"
+            tools:text="FPS: 58.9" />
+
+        <TextView
+            android:id="@+id/overlayLatencyText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/overlay_latency_default"
+            android:textColor="@color/overlay_body_text"
+            android:textSize="13sp"
+            tools:text="耗时: 17 ms" />
+
+        <TextView
+            android:id="@+id/overlayLabelText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/overlay_label_default"
+            android:textColor="@color/overlay_body_text"
+            android:textSize="13sp"
+            tools:text="标签: 1" />
+    </LinearLayout>
 
     <TextView
         android:layout_width="wrap_content"
