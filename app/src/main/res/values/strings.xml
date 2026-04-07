@@ -1,5 +1,23 @@
 <resources>
     <string name="app_name">Clariface</string>
+    <string name="tips_title">Tips</string>
+    <string name="open_settings">设置</string>
+    <string name="settings_title">检测设置</string>
+    <string name="settings_subtitle">在这里调整 FPS、跟踪模式和悬浮窗显示策略。</string>
+    <string name="settings_analysis_section">分析参数</string>
+    <string name="settings_overlay_section">悬浮窗控制</string>
+    <string name="settings_display_section">显示设置</string>
+    <string name="swipe_hint">左右滑动切换</string>
+    <string name="nav_home">首页</string>
+    <string name="nav_settings">设置</string>
+    <string name="settings_fps">分析帧率</string>
+    <string name="settings_mode">跟踪模式</string>
+    <string name="settings_saved">设置已保存</string>
+    <string name="back">返回</string>
+    <string name="save">保存</string>
+    <string name="control_panel_title">控制面板</string>
+    <string name="realtime_metrics_title">实时检测指标</string>
+    <string name="diag_title">诊断信息</string>
     <string name="start_detection">开始检测</string>
     <string name="stop_detection">停止检测</string>
     <string name="status_idle_short">空闲</string>
@@ -33,13 +51,19 @@
     <string name="notification_title">Clariface 正在检测屏幕画面</string>
     <string name="notification_content">点击可返回应用查看实时概率、标签和 FPS。</string>
     <string name="overlay_probability_default">概率: 0.0000</string>
+    <string name="overlay_probability_waiting">概率: 等待人脸中</string>
     <string name="overlay_fps_default">FPS: 0.0</string>
     <string name="overlay_latency_default">耗时: 0 ms</string>
     <string name="overlay_label_default">标签: 0</string>
+    <string name="overlay_label_waiting">标签: 等待中</string>
+    <string name="overlay_verdict_real">真实</string>
+    <string name="overlay_verdict_fake">伪造</string>
+    <string name="overlay_verdict_pending">等待中</string>
     <string name="overlay_probability_template">概率: %.4f</string>
     <string name="overlay_fps_template">FPS: %.1f</string>
     <string name="overlay_latency_template">耗时: %1$d ms</string>
     <string name="overlay_label_template">标签: %1$d</string>
+    <string name="overlay_back_to_app">返回软件</string>
     <string name="overlay_drag_hint">按住可拖动</string>
     <string name="diag_default">状态: 等待开始检测</string>
     <string name="diag_no_overlay_permission">状态: 未获得悬浮窗权限，无法显示悬浮窗。</string>
@@ -55,11 +79,11 @@
     <string-array name="fps_options">
         <item>fps10</item>
         <item>fps20</item>
-        <item>fps30(推荐)</item>
+        <item>fps30</item>
         <item>fps60</item>
     </string-array>
     <string-array name="tracking_mode_options">
-        <item>平衡模式（精度优先）</item>
-        <item>极速模式（响应优先）</item>
+        <item>平衡模式</item>
+        <item>极速模式</item>
     </string-array>
 </resources>

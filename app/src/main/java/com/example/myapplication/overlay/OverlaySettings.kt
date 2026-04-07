@@ -7,6 +7,7 @@ object OverlaySettings {
     private const val KEY_OVERLAY_VISIBLE = "overlay_visible"
     private const val KEY_OVERLAY_COMPACT = "overlay_compact"
     private const val KEY_TRACKING_MODE = "tracking_mode"
+    private const val KEY_REQUESTED_FPS = "requested_fps"
 
     fun isOverlayVisible(context: Context): Boolean {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -41,6 +42,18 @@ object OverlaySettings {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY_TRACKING_MODE, mode)
+            .apply()
+    }
+
+    fun getRequestedFps(context: Context): Int {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getInt(KEY_REQUESTED_FPS, 30)
+    }
+
+    fun setRequestedFps(context: Context, fps: Int) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putInt(KEY_REQUESTED_FPS, fps)
             .apply()
     }
 }

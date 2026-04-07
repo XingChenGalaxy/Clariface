@@ -2,6 +2,7 @@ package com.example.myapplication.overlay
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.os.Build
@@ -14,6 +15,7 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import com.example.myapplication.MainActivity
 import com.example.myapplication.R
 
 class OverlayWindowController(private val context: Context) {
@@ -66,8 +68,12 @@ class OverlayWindowController(private val context: Context) {
     private var fpsText: TextView? = null
     private var latencyText: TextView? = null
     private var labelText: TextView? = null
+    private var verdictText: TextView? = null
     private var statusText: TextView? = null
     private var metricsContainer: View? = null
+    private var dragHintText: View? = null
+    private var openAppButton: View? = null
+    private var openAppIconButton: View? = null
 
     fun show() {
         ensureScreenRoiLayer()
@@ -88,6 +94,9 @@ class OverlayWindowController(private val context: Context) {
         }
         screenRoiView = null
         metricsContainer = null
+        dragHintText = null
+        openAppButton = null
+        openAppIconButton = null
     }
 
     fun setMetricsVisible(visible: Boolean) {
@@ -124,33 +133,58 @@ class OverlayWindowController(private val context: Context) {
         }
     }
 
-    fun update(probability: Float, fps: Float, latencyMs: Long, label: Int, isAlert: Boolean) {
+    fun update(probability: Float, fps: Float, latencyMs: Long, label: Int, isAlert: Boolean, stableDisplayLabel: Int) {
         if (Looper.myLooper() == Looper.getMainLooper()) {
-            updateUi(probability, fps, latencyMs, label, isAlert)
+            updateUi(probability, fps, latencyMs, label, isAlert, stableDisplayLabel)
         } else {
-            mainHandler.post { updateUi(probability, fps, latencyMs, label, isAlert) }
+            mainHandler.post { updateUi(probability, fps, latencyMs, label, isAlert, stableDisplayLabel) }
         }
     }
 
-    fun updateTrackedFaceRect(rect: Rect?) {
+    fun updateTrackedFaceRect(rect: Rect?, isFake: Boolean = false) {
         if (Looper.myLooper() == Looper.getMainLooper()) {
             ensureScreenRoiLayer()
-            screenRoiView?.updateRoi(rect)
+            screenRoiView?.updateRoi(rect, isFake)
         } else {
             mainHandler.post {
                 ensureScreenRoiLayer()
-                screenRoiView?.updateRoi(rect)
+                screenRoiView?.updateRoi(rect, isFake)
             }
         }
     }
 
-    private fun updateUi(probability: Float, fps: Float, latencyMs: Long, label: Int, isAlert: Boolean) {
+    private fun updateUi(probability: Float, fps: Float, latencyMs: Long, label: Int, isAlert: Boolean, stableDisplayLabel: Int) {
         if (rootView == null) return
         if (compactMode) return
-        probabilityText?.text = context.getString(R.string.overlay_probability_template, probability)
+
+        val isPending = stableDisplayLabel == -1
+        probabilityText?.text = if (isPending) {
+            context.getString(R.string.overlay_probability_waiting)
+        } else {
+            context.getString(R.string.overlay_probability_template, probability)
+        }
         fpsText?.text = context.getString(R.string.overlay_fps_template, fps)
         latencyText?.text = context.getString(R.string.overlay_latency_template, latencyMs)
-        labelText?.text = context.getString(R.string.overlay_label_template, label)
+        labelText?.text = if (isPending) {
+            context.getString(R.string.overlay_label_waiting)
+        } else {
+            context.getString(R.string.overlay_label_template, label)
+        }
+
+        val verdictTextValue = when (stableDisplayLabel) {
+            -1 -> context.getString(R.string.overlay_verdict_pending)
+            0 -> context.getString(R.string.overlay_verdict_fake)
+            else -> context.getString(R.string.overlay_verdict_real)
+        }
+        val verdictBackground = when (stableDisplayLabel) {
+            -1 -> R.drawable.bg_status_idle
+            0 -> R.drawable.bg_status_alert
+            else -> R.drawable.bg_status_running
+        }
+        verdictText?.text = verdictTextValue
+        verdictText?.setBackgroundResource(verdictBackground)
+        verdictText?.setTextColor(ContextCompat.getColor(context, R.color.white))
+
         statusText?.text = if (isAlert) context.getString(R.string.status_alert_short) else context.getString(R.string.status_running_short)
         statusText?.setBackgroundResource(if (isAlert) R.drawable.bg_status_alert else R.drawable.bg_status_running)
         statusText?.setTextColor(ContextCompat.getColor(context, R.color.white))
@@ -168,6 +202,20 @@ class OverlayWindowController(private val context: Context) {
         statusText?.text = context.getString(R.string.overlay_waiting_face)
         statusText?.setBackgroundResource(R.drawable.bg_status_idle)
         statusText?.setTextColor(ContextCompat.getColor(context, R.color.white))
+        verdictText?.text = context.getString(R.string.overlay_verdict_pending)
+        verdictText?.setBackgroundResource(R.drawable.bg_status_idle)
+        verdictText?.setTextColor(ContextCompat.getColor(context, R.color.white))
+        if (!compactMode) {
+            probabilityText?.text = context.getString(R.string.overlay_probability_waiting)
+            labelText?.text = context.getString(R.string.overlay_label_waiting)
+        }
+    }
+
+    private fun openMainApp() {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        }
+        context.startActivity(intent)
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -206,8 +254,14 @@ class OverlayWindowController(private val context: Context) {
         fpsText = view.findViewById(R.id.overlayFpsText)
         latencyText = view.findViewById(R.id.overlayLatencyText)
         labelText = view.findViewById(R.id.overlayLabelText)
+        verdictText = view.findViewById(R.id.overlayVerdictText)
         statusText = view.findViewById(R.id.overlayStatusPill)
         metricsContainer = view.findViewById(R.id.overlayMetricsContainer)
+        dragHintText = view.findViewById(R.id.overlayDragHintText)
+        openAppButton = view.findViewById(R.id.overlayOpenAppButton)
+        openAppIconButton = view.findViewById(R.id.overlayOpenAppIconButton)
+        openAppButton?.setOnClickListener { openMainApp() }
+        openAppIconButton?.setOnClickListener { openMainApp() }
     }
 
     private fun ensureMetricsCard() {
@@ -247,8 +301,9 @@ class OverlayWindowController(private val context: Context) {
     }
 
     private fun applyCompactMode() {
-        if (rootView == null) return
         metricsContainer?.visibility = if (compactMode) View.GONE else View.VISIBLE
+        dragHintText?.visibility = if (compactMode) View.GONE else View.VISIBLE
+        openAppButton?.visibility = if (compactMode) View.GONE else View.VISIBLE
+        openAppIconButton?.visibility = if (compactMode) View.VISIBLE else View.GONE
     }
 }
-

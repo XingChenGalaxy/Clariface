@@ -3,18 +3,20 @@ package com.example.myapplication.pipeline
 import kotlin.math.roundToInt
 
 /**
- * Mirrors the desktop logic:
+ * Mirrors the desktop logic while making the visible label stable in both directions:
  * - smooth over latest 5 window scores
  * - fake threshold = 0.3
- * - trigger alert after 6 consecutive fake windows
+ * - visible label switches only after several consecutive frames on the new side
  */
 class RealtimeDecisionEngine(
     private val fakeThreshold: Float = 0.3f,
     private val smoothingSize: Int = 5,
-    private val requiredConsecutiveFake: Int = 6
+    private val requiredConsecutiveSwitch: Int = 3
 ) {
     private val history = ArrayDeque<Float>()
-    private var consecutiveFake = 0
+    private var stableLabel = 1
+    private var pendingLabel = 1
+    private var consecutivePending = 0
 
     fun update(windowScore: Float): Decision {
         if (history.size == smoothingSize) {
@@ -23,30 +25,38 @@ class RealtimeDecisionEngine(
         history.addLast(windowScore)
         val smoothed = history.average().toFloat()
 
-        val isFake = smoothed <= fakeThreshold
-        if (isFake) {
-            consecutiveFake += 1
+        val candidateLabel = if (smoothed > fakeThreshold) 1 else 0
+        if (candidateLabel == stableLabel) {
+            pendingLabel = candidateLabel
+            consecutivePending = 0
+        } else if (candidateLabel != pendingLabel) {
+            pendingLabel = candidateLabel
+            consecutivePending = 1
         } else {
-            consecutiveFake = 0
+            consecutivePending += 1
+            if (consecutivePending >= requiredConsecutiveSwitch) {
+                stableLabel = candidateLabel
+                consecutivePending = 0
+            }
         }
 
-        val alert = isFake && consecutiveFake >= requiredConsecutiveFake
-        if (alert) {
-            consecutiveFake = 0
-        }
+        val isAlert = stableLabel == 0
 
         return Decision(
             rawProbability = windowScore,
             smoothedProbability = smoothed,
-            label = if (smoothed > fakeThreshold) 1 else 0,
-            isAlert = alert,
-            consecutiveFakeCount = consecutiveFake
+            label = stableLabel,
+            isAlert = isAlert,
+            consecutiveSwitchCount = consecutivePending,
+            candidateLabel = candidateLabel
         )
     }
 
     fun reset() {
         history.clear()
-        consecutiveFake = 0
+        stableLabel = 1
+        pendingLabel = 1
+        consecutivePending = 0
     }
 }
 
@@ -55,11 +65,11 @@ data class Decision(
     val smoothedProbability: Float,
     val label: Int,
     val isAlert: Boolean,
-    val consecutiveFakeCount: Int
+    val consecutiveSwitchCount: Int,
+    val candidateLabel: Int
 ) {
     fun prettyProbability(): String {
         val p = (smoothedProbability * 10000f).roundToInt() / 10000f
         return "%.4f".format(p)
     }
 }
-

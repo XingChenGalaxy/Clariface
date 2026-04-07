@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <dimen name="card_stroke_width">1dp</dimen>
     <dimen name="alert_stroke_width">2dp</dimen>
+    <dimen name="start_button_shift_up">88dp</dimen>
+    <dimen name="start_button_corner_idle">100dp</dimen>
+    <dimen name="start_button_corner_running">22dp</dimen>
+    <dimen name="start_button_width_running">308dp</dimen>
+    <dimen name="start_button_height_running">76dp</dimen>
+    <dimen name="metric_cards_shift_up">108dp</dimen>
+    <dimen name="start_button_horizontal_padding_total">56dp</dimen>
+    <dimen name="running_balanced_gap">12dp</dimen>
+    <dimen name="tips_running_min_gap">10dp</dimen>
+    <dimen name="running_metrics_gap">10dp</dimen>
+    <dimen name="tips_restore_offset_y">12dp</dimen>
 </resources>
 
