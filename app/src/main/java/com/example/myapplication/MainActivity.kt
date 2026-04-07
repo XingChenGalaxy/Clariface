@@ -77,11 +77,12 @@ class MainActivity : AppCompatActivity() {
             val label = intent.getIntExtra(ScreenCaptureService.EXTRA_LABEL, 0)
             val isAlert = intent.getBooleanExtra(ScreenCaptureService.EXTRA_IS_ALERT, false)
             val roiUsed = intent.getBooleanExtra(ScreenCaptureService.EXTRA_ROI_USED, false)
+            val isWaiting = probability < 0f || label < 0
 
-            probabilityText.text = getString(R.string.probability_template, probability)
+            probabilityText.text = if (isWaiting) getString(R.string.overlay_probability_waiting) else getString(R.string.probability_template, probability)
             detectionTimeText.text = getString(R.string.detime_template, elapsed)
             fpsText.text = getString(R.string.fps_template, fps)
-            labelText.text = getString(R.string.label_template, label)
+            labelText.text = if (isWaiting) getString(R.string.overlay_label_waiting) else getString(R.string.label_template, label)
             roiStatusText.text = if (roiUsed) getString(R.string.roi_hit) else getString(R.string.roi_miss)
             bindAlertState(isAlert)
         }

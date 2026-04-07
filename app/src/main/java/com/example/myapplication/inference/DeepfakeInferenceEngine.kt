@@ -15,17 +15,28 @@ data class InferenceOutput(
     val roiUsed: Boolean = false,
     val roiRect: Rect? = null,
     val faceRect: Rect? = null,
-    val validForDecision: Boolean = true
+    val validForDecision: Boolean = true,
+    val isFake: Boolean = false
 )
 
-object InferenceEngineFactory {
-    fun create(context: Context, trackingMode: TrackingMode): DeepfakeInferenceEngine {
-        return try {
-            OnnxDeepfakeInferenceEngine(context, trackingMode = trackingMode)
-        } catch (_: Exception) {
-            // Keep app runnable even before model conversion is ready.
-            FallbackHeuristicInferenceEngine()
+/**
+ * 追踪模式枚举，保留供 UI 选择器和 OverlaySettings 使用。
+ * 服务器端推理不依赖此值，仅作为用户偏好设置保存。
+ */
+enum class TrackingMode(val raw: String) {
+    BALANCED("balanced"),
+    FAST("fast");
+
+    companion object {
+        fun fromRaw(raw: String?): TrackingMode {
+            return entries.firstOrNull { it.raw == raw } ?: BALANCED
         }
     }
 }
 
+object InferenceEngineFactory {
+    fun create(context: Context, trackingMode: TrackingMode): DeepfakeInferenceEngine {
+        android.util.Log.i("InferenceEngine", "[OK] 使用服务器推理引擎，地址: ${ServerInferenceEngine.SERVER_URL}")
+        return ServerInferenceEngine()
+    }
+}

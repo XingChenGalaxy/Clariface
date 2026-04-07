@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
@@ -15,6 +16,7 @@
         android:label="@string/app_name"
         android:roundIcon="@drawable/clariface_launcher_round"
         android:supportsRtl="true"
+        android:usesCleartextTraffic="true"
         android:theme="@style/Theme.MyApplication">
         <service
             android:name=".capture.ScreenCaptureService"
@@ -22,15 +24,7 @@
             android:foregroundServiceType="mediaProjection" />
 
         <activity
-            android:name=".SettingsActivity"
-            android:exported="false" />
-
-        <activity
             android:name=".MainActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".SplashActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

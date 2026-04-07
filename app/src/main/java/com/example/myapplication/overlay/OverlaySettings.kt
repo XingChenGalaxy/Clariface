@@ -23,7 +23,7 @@ object OverlaySettings {
 
     fun isOverlayCompact(context: Context): Boolean {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .getBoolean(KEY_OVERLAY_COMPACT, true)
+            .getBoolean(KEY_OVERLAY_COMPACT, false)
     }
 
     fun setOverlayCompact(context: Context, compact: Boolean) {
@@ -38,11 +38,6 @@ object OverlaySettings {
             .getString(KEY_TRACKING_MODE, "balanced") ?: "balanced"
     }
 
-    fun getRequestedFps(context: Context): Int {
-        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .getInt(KEY_REQUESTED_FPS, 30)
-    }
-
     fun setTrackingMode(context: Context, mode: String) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
@@ -50,12 +45,16 @@ object OverlaySettings {
             .apply()
     }
 
+    fun getRequestedFps(context: Context): Int {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getInt(KEY_REQUESTED_FPS, 30)
+    }
+
     fun setRequestedFps(context: Context, fps: Int) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
-            .putInt(KEY_REQUESTED_FPS, fps.coerceAtLeast(1))
+            .putInt(KEY_REQUESTED_FPS, fps)
             .apply()
     }
-
 }
 

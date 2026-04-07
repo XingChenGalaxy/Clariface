@@ -27,7 +27,6 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.myapplication.MainActivity
 import com.example.myapplication.R
-import com.example.myapplication.inference.FallbackHeuristicInferenceEngine
 import com.example.myapplication.inference.DeepfakeInferenceEngine
 import com.example.myapplication.inference.InferenceEngineFactory
 import com.example.myapplication.inference.TrackingMode
@@ -36,9 +35,6 @@ import com.example.myapplication.overlay.OverlayWindowController
 import com.example.myapplication.pipeline.RealtimeDecisionEngine
 
 class ScreenCaptureService : Service() {
-
-    private val frameWindow = ArrayDeque<Float>()
-    private val frameWindowSize = 10
 
     private val decisionEngine = RealtimeDecisionEngine()
     private var inferenceEngine: DeepfakeInferenceEngine? = null
@@ -63,6 +59,12 @@ class ScreenCaptureService : Service() {
     private var analyzerFps = 0f
     private var lastSmoothedProbability = 0.5f
     private var lastLabel = 1
+    private var stableOverlayState = OVERLAY_STATE_PENDING
+    private var consecutiveNoFaceFrames = 0
+    private var pendingDetectedLabel = 1
+    private var consecutiveDetectedLabelFrames = 0
+    private var isStopping = false
+    private var isProcessingFrame = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -78,6 +80,13 @@ class ScreenCaptureService : Service() {
                 val resultData = intent.getParcelableExtraCompat<Intent>(EXTRA_RESULT_DATA)
                 requestedFps = intent.getIntExtra(EXTRA_REQUESTED_FPS, 30).coerceAtLeast(1)
                 trackingMode = TrackingMode.fromRaw(intent.getStringExtra(EXTRA_TRACKING_MODE))
+
+                // 强制开启悬浮窗显示（避免因历史设置为隐藏导致“前端不显示”）
+                overlayVisible = true
+                overlayCompact = false
+                OverlaySettings.setOverlayVisible(this, true)
+                OverlaySettings.setOverlayCompact(this, false)
+
                 inferenceEngine?.close()
                 inferenceEngine = InferenceEngineFactory.create(this, trackingMode)
 
@@ -100,11 +109,7 @@ class ScreenCaptureService : Service() {
                     stopSelf()
                     return START_NOT_STICKY
                 }
-                if (inferenceEngine is FallbackHeuristicInferenceEngine) {
-                    sendDiagnostic(DIAG_MODEL_FALLBACK)
-                } else {
-                    sendDiagnostic(DIAG_RUNNING)
-                }
+                sendDiagnostic(DIAG_RUNNING, "服务器推理引擎已就绪，地址: ${com.example.myapplication.inference.ServerInferenceEngine.SERVER_URL}")
                 sendStateBroadcast(true)
             }
 
@@ -210,8 +215,13 @@ class ScreenCaptureService : Service() {
     }
 
     private fun processImage(image: Image) {
-        val now = System.nanoTime()
-        val frameIntervalNs = 1_000_000_000L / requestedFps.toLong()
+        if (isStopping || isProcessingFrame) {
+            return
+        }
+        isProcessingFrame = true
+        try {
+            val now = System.nanoTime()
+            val frameIntervalNs = 1_000_000_000L / requestedFps.toLong()
         if (now - lastInferenceNs < frameIntervalNs) {
             return
         }
@@ -219,18 +229,30 @@ class ScreenCaptureService : Service() {
 
         val engine = inferenceEngine ?: return
         val bitmap = imageToBitmap(image) ?: return
+        // 每30帧打印一次引擎类型，便于调试
+        if (processedFramesInWindow % 30 == 0) {
+            Log.d(TAG, "推理引擎: ${engine.javaClass.simpleName}")
+        }
         val output = engine.infer(bitmap)
+        if (isStopping) {
+            bitmap.recycle()
+            return
+        }
+        Log.d(TAG, "推理结果: prob=${output.probability} roiUsed=${output.roiUsed} valid=${output.validForDecision} elapsedMs=${output.elapsedMs}")
 
         val trackedRect = output.faceRect ?: output.roiRect
-        overlayController?.updateTrackedFaceRect(trackedRect)
         bitmap.recycle()
 
         if (!output.validForDecision) {
-            overlayController?.showWaitingFaceState()
+            updateOverlayStateForNoFace()
+            overlayController?.updateTrackedFaceRect(trackedRect, stableOverlayState == OVERLAY_STATE_FAKE)
+            if (stableOverlayState == OVERLAY_STATE_PENDING) {
+                overlayController?.showWaitingFaceState()
+            }
             val metricsIntent = Intent(ACTION_METRICS).apply {
                 setPackage(packageName)
-                putExtra(EXTRA_PROBABILITY, lastSmoothedProbability)
-                putExtra(EXTRA_LABEL, lastLabel)
+                putExtra(EXTRA_PROBABILITY, if (stableOverlayState == OVERLAY_STATE_PENDING) -1f else lastSmoothedProbability)
+                putExtra(EXTRA_LABEL, if (stableOverlayState == OVERLAY_STATE_PENDING) -1 else lastLabel)
                 putExtra(EXTRA_DETECTION_MS, output.elapsedMs)
                 putExtra(EXTRA_ANALYZER_FPS, analyzerFps)
                 putExtra(EXTRA_IS_ALERT, false)
@@ -240,17 +262,14 @@ class ScreenCaptureService : Service() {
             return
         }
 
-        pushFrameProbability(output.probability)
+        // 直接将每帧 probability 送入决策引擎（内部做5帧滑动平均）
+        // 与 PC 端逻辑一致：每帧 sigmoid → 决策引擎平滑 → 阈值判断
         updateAnalyzerFps(now)
-
-        if (frameWindow.size < frameWindowSize) {
-            return
-        }
-
-        val windowAvg = frameWindow.average().toFloat()
-        val decision = decisionEngine.update(windowAvg)
+        val decision = decisionEngine.update(output.probability)
         lastSmoothedProbability = decision.smoothedProbability
         lastLabel = decision.label
+        updateOverlayStateForDetection(lastLabel)
+        overlayController?.updateTrackedFaceRect(trackedRect, stableOverlayState == OVERLAY_STATE_FAKE)
 
         val metricsIntent = Intent(ACTION_METRICS).apply {
             setPackage(packageName)
@@ -268,15 +287,15 @@ class ScreenCaptureService : Service() {
             fps = analyzerFps,
             latencyMs = output.elapsedMs,
             label = decision.label,
-            isAlert = decision.isAlert
+            isAlert = decision.isAlert,
+            stableDisplayLabel = stableOverlayState
         )
-    }
-
-    private fun pushFrameProbability(probability: Float) {
-        if (frameWindow.size == frameWindowSize) {
-            frameWindow.removeFirst()
+        } catch (t: Throwable) {
+            Log.e(TAG, "processImage failed", t)
+            // 不中断采集线程，避免一次异常后前端持续无更新
+        } finally {
+            isProcessingFrame = false
         }
-        frameWindow.addLast(probability)
     }
 
     private fun updateAnalyzerFps(now: Long) {
@@ -292,6 +311,27 @@ class ScreenCaptureService : Service() {
         }
     }
 
+    private fun updateOverlayStateForNoFace() {
+        consecutiveNoFaceFrames += 1
+        pendingDetectedLabel = lastLabel
+        consecutiveDetectedLabelFrames = 0
+        if (consecutiveNoFaceFrames >= 10) {
+            stableOverlayState = OVERLAY_STATE_PENDING
+        }
+    }
+
+    private fun updateOverlayStateForDetection(detectedLabel: Int) {
+        consecutiveNoFaceFrames = 0
+        if (detectedLabel != pendingDetectedLabel) {
+            pendingDetectedLabel = detectedLabel
+            consecutiveDetectedLabelFrames = 1
+        } else {
+            consecutiveDetectedLabelFrames += 1
+        }
+        if (consecutiveDetectedLabelFrames >= 5) {
+            stableOverlayState = if (detectedLabel == 0) OVERLAY_STATE_FAKE else OVERLAY_STATE_REAL
+        }
+    }
 
     private fun imageToBitmap(image: Image): Bitmap? {
         val plane = image.planes.firstOrNull() ?: return null
@@ -299,17 +339,22 @@ class ScreenCaptureService : Service() {
         val pixelStride = plane.pixelStride
         val rowStride = plane.rowStride
         val rowPadding = rowStride - pixelStride * image.width
-        val bitmap = Bitmap.createBitmap(
+
+        val tempBitmap = Bitmap.createBitmap(
             image.width + rowPadding / pixelStride,
             image.height,
             Bitmap.Config.ARGB_8888
         )
         buffer.rewind()
-        bitmap.copyPixelsFromBuffer(buffer)
-        return Bitmap.createBitmap(bitmap, 0, 0, image.width, image.height)
+        tempBitmap.copyPixelsFromBuffer(buffer)
+
+        val cropped = Bitmap.createBitmap(tempBitmap, 0, 0, image.width, image.height)
+        tempBitmap.recycle()
+        return cropped
     }
 
     private fun stopCapture() {
+        isStopping = true
         imageReader?.setOnImageAvailableListener(null, null)
         imageReader?.close()
         imageReader = null
@@ -341,7 +386,6 @@ class ScreenCaptureService : Service() {
     }
 
     private fun resetRuntimeState() {
-        frameWindow.clear()
         decisionEngine.reset()
         lastInferenceNs = 0L
         fpsWindowStartNs = 0L
@@ -349,6 +393,12 @@ class ScreenCaptureService : Service() {
         analyzerFps = 0f
         lastSmoothedProbability = 0.5f
         lastLabel = 1
+        stableOverlayState = OVERLAY_STATE_PENDING
+        consecutiveNoFaceFrames = 0
+        pendingDetectedLabel = 1
+        consecutiveDetectedLabelFrames = 0
+        isStopping = false
+        isProcessingFrame = false
     }
 
     private fun showOverlayIfPermitted() {
@@ -465,6 +515,10 @@ class ScreenCaptureService : Service() {
         const val ACTION_STOP = "com.example.myapplication.capture.STOP"
         const val ACTION_SET_OVERLAY_VISIBILITY = "com.example.myapplication.capture.SET_OVERLAY_VISIBILITY"
         const val ACTION_SET_OVERLAY_COMPACT = "com.example.myapplication.capture.SET_OVERLAY_COMPACT"
+
+        private const val OVERLAY_STATE_PENDING = -1
+        private const val OVERLAY_STATE_FAKE = 0
+        private const val OVERLAY_STATE_REAL = 1
 
         const val ACTION_METRICS = "com.example.myapplication.capture.METRICS"
         const val ACTION_STATE = "com.example.myapplication.capture.STATE"

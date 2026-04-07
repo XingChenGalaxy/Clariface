@@ -17,8 +17,12 @@ class RealtimeDecisionEngineTest {
     }
 
     @Test
-    fun `alert triggers after required consecutive fake updates`() {
-        val engine = RealtimeDecisionEngine(fakeThreshold = 0.3f, requiredConsecutiveFake = 3)
+    fun `switches to fake after required consecutive fake updates`() {
+        val engine = RealtimeDecisionEngine(
+            fakeThreshold = 0.3f,
+            smoothingSize = 1,
+            requiredConsecutiveSwitch = 3
+        )
 
         engine.update(0.1f)
         engine.update(0.1f)
