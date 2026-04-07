@@ -10,8 +10,6 @@ activity = "1.8.0"
 constraintlayout = "2.1.4"
 camerax = "1.4.2"
 lifecycleRuntime = "2.8.7"
-onnxruntime = "1.20.0"
-opencvAndroid = "4.10.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -27,8 +25,6 @@ androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", 
 androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "camerax" }
 androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "camerax" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntime" }
-onnxruntime-android = { group = "com.microsoft.onnxruntime", name = "onnxruntime-android", version.ref = "onnxruntime" }
-opencv-android = { group = "org.opencv", name = "opencv", version.ref = "opencvAndroid" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
