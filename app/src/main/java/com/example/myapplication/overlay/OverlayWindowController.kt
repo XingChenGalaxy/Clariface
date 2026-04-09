@@ -13,6 +13,7 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.example.myapplication.MainActivity
@@ -67,8 +68,6 @@ class OverlayWindowController(private val context: Context) {
     private var probabilityText: TextView? = null
     private var fpsText: TextView? = null
     private var latencyText: TextView? = null
-    private var labelText: TextView? = null
-    private var verdictText: TextView? = null
     private var statusText: TextView? = null
     private var metricsContainer: View? = null
     private var dragHintText: View? = null
@@ -133,11 +132,11 @@ class OverlayWindowController(private val context: Context) {
         }
     }
 
-    fun update(probability: Float, fps: Float, latencyMs: Long, label: Int, isAlert: Boolean, stableDisplayLabel: Int) {
+    fun update(probability: Float, fps: Float, latencyMs: Long, isAlert: Boolean, stableDisplayLabel: Int) {
         if (Looper.myLooper() == Looper.getMainLooper()) {
-            updateUi(probability, fps, latencyMs, label, isAlert, stableDisplayLabel)
+            updateUi(probability, fps, latencyMs, isAlert, stableDisplayLabel)
         } else {
-            mainHandler.post { updateUi(probability, fps, latencyMs, label, isAlert, stableDisplayLabel) }
+            mainHandler.post { updateUi(probability, fps, latencyMs, isAlert, stableDisplayLabel) }
         }
     }
 
@@ -153,7 +152,7 @@ class OverlayWindowController(private val context: Context) {
         }
     }
 
-    private fun updateUi(probability: Float, fps: Float, latencyMs: Long, label: Int, isAlert: Boolean, stableDisplayLabel: Int) {
+    private fun updateUi(probability: Float, fps: Float, latencyMs: Long, isAlert: Boolean, stableDisplayLabel: Int) {
         if (rootView == null) return
         if (compactMode) return
 
@@ -165,25 +164,6 @@ class OverlayWindowController(private val context: Context) {
         }
         fpsText?.text = context.getString(R.string.overlay_fps_template, fps)
         latencyText?.text = context.getString(R.string.overlay_latency_template, latencyMs)
-        labelText?.text = if (isPending) {
-            context.getString(R.string.overlay_label_waiting)
-        } else {
-            context.getString(R.string.overlay_label_template, label)
-        }
-
-        val verdictTextValue = when (stableDisplayLabel) {
-            -1 -> context.getString(R.string.overlay_verdict_pending)
-            0 -> context.getString(R.string.overlay_verdict_fake)
-            else -> context.getString(R.string.overlay_verdict_real)
-        }
-        val verdictBackground = when (stableDisplayLabel) {
-            -1 -> R.drawable.bg_status_idle
-            0 -> R.drawable.bg_status_alert
-            else -> R.drawable.bg_status_running
-        }
-        verdictText?.text = verdictTextValue
-        verdictText?.setBackgroundResource(verdictBackground)
-        verdictText?.setTextColor(ContextCompat.getColor(context, R.color.white))
 
         statusText?.text = if (isAlert) context.getString(R.string.status_alert_short) else context.getString(R.string.status_running_short)
         statusText?.setBackgroundResource(if (isAlert) R.drawable.bg_status_alert else R.drawable.bg_status_running)
@@ -202,12 +182,8 @@ class OverlayWindowController(private val context: Context) {
         statusText?.text = context.getString(R.string.overlay_waiting_face)
         statusText?.setBackgroundResource(R.drawable.bg_status_idle)
         statusText?.setTextColor(ContextCompat.getColor(context, R.color.white))
-        verdictText?.text = context.getString(R.string.overlay_verdict_pending)
-        verdictText?.setBackgroundResource(R.drawable.bg_status_idle)
-        verdictText?.setTextColor(ContextCompat.getColor(context, R.color.white))
         if (!compactMode) {
             probabilityText?.text = context.getString(R.string.overlay_probability_waiting)
-            labelText?.text = context.getString(R.string.overlay_label_waiting)
         }
     }
 
@@ -253,8 +229,6 @@ class OverlayWindowController(private val context: Context) {
         probabilityText = view.findViewById(R.id.overlayProbabilityText)
         fpsText = view.findViewById(R.id.overlayFpsText)
         latencyText = view.findViewById(R.id.overlayLatencyText)
-        labelText = view.findViewById(R.id.overlayLabelText)
-        verdictText = view.findViewById(R.id.overlayVerdictText)
         statusText = view.findViewById(R.id.overlayStatusPill)
         metricsContainer = view.findViewById(R.id.overlayMetricsContainer)
         dragHintText = view.findViewById(R.id.overlayDragHintText)
@@ -305,5 +279,35 @@ class OverlayWindowController(private val context: Context) {
         dragHintText?.visibility = if (compactMode) View.GONE else View.VISIBLE
         openAppButton?.visibility = if (compactMode) View.GONE else View.VISIBLE
         openAppIconButton?.visibility = if (compactMode) View.VISIBLE else View.GONE
+
+        statusText?.apply {
+            isSingleLine = false
+            ellipsize = null
+            maxLines = if (compactMode) 3 else 1
+            val displayWidth = context.resources.displayMetrics.widthPixels
+            val reservedForIcon = dpToPx(56)
+            val compactMaxWidth = (displayWidth * 0.72f).toInt().coerceAtLeast(dpToPx(180))
+            maxWidth = if (compactMode) {
+                (compactMaxWidth - reservedForIcon).coerceAtLeast(dpToPx(120))
+            } else {
+                Int.MAX_VALUE
+            }
+            requestLayout()
+        }
+
+        rootView?.let { view ->
+            if (compactMode) {
+                view.layoutParams = view.layoutParams?.apply {
+                    width = ViewGroup.LayoutParams.WRAP_CONTENT
+                    height = ViewGroup.LayoutParams.WRAP_CONTENT
+                }
+            }
+            runCatching { windowManager.updateViewLayout(view, layoutParams) }
+            view.requestLayout()
+        }
+    }
+
+    private fun dpToPx(dp: Int): Int {
+        return (dp * context.resources.displayMetrics.density).toInt()
     }
 }

@@ -48,7 +48,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var probabilityText: TextView
     private lateinit var detectionTimeText: TextView
     private lateinit var fpsText: TextView
-    private lateinit var labelText: TextView
     private lateinit var roiStatusText: TextView
     private lateinit var errorReasonText: TextView
     private lateinit var alertCard: MaterialCardView
@@ -74,15 +73,13 @@ class MainActivity : AppCompatActivity() {
             val probability = intent.getFloatExtra(ScreenCaptureService.EXTRA_PROBABILITY, 0f)
             val elapsed = intent.getLongExtra(ScreenCaptureService.EXTRA_DETECTION_MS, 0L)
             val fps = intent.getFloatExtra(ScreenCaptureService.EXTRA_ANALYZER_FPS, 0f)
-            val label = intent.getIntExtra(ScreenCaptureService.EXTRA_LABEL, 0)
             val isAlert = intent.getBooleanExtra(ScreenCaptureService.EXTRA_IS_ALERT, false)
             val roiUsed = intent.getBooleanExtra(ScreenCaptureService.EXTRA_ROI_USED, false)
-            val isWaiting = probability < 0f || label < 0
+            val isWaiting = probability < 0f
 
             probabilityText.text = if (isWaiting) getString(R.string.overlay_probability_waiting) else getString(R.string.probability_template, probability)
             detectionTimeText.text = getString(R.string.detime_template, elapsed)
             fpsText.text = getString(R.string.fps_template, fps)
-            labelText.text = if (isWaiting) getString(R.string.overlay_label_waiting) else getString(R.string.label_template, label)
             roiStatusText.text = if (roiUsed) getString(R.string.roi_hit) else getString(R.string.roi_miss)
             bindAlertState(isAlert)
         }
@@ -183,7 +180,6 @@ class MainActivity : AppCompatActivity() {
         probabilityText = findViewById(R.id.probabilityText)
         detectionTimeText = findViewById(R.id.detectionTimeText)
         fpsText = findViewById(R.id.fpsText)
-        labelText = findViewById(R.id.labelText)
         roiStatusText = findViewById(R.id.roiStatusText)
         errorReasonText = findViewById(R.id.errorReasonText)
         alertCard = findViewById(R.id.alertCard)

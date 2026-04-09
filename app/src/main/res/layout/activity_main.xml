@@ -155,13 +155,6 @@
                             android:layout_marginTop="10dp"
                             android:text="@string/probability_default" />
 
-                        <TextView
-                            android:id="@+id/labelText"
-                            style="@style/TextAppearance.Clariface.Metric"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:text="@string/label_default" />
 
                         <TextView
                             android:id="@+id/detectionTimeText"
