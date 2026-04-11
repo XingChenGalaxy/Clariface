@@ -13,3 +13,5 @@
 .externalNativeBuild
 .cxx
 local.properties
+clariface-v1.1.0-signing-info.txt
+release-sign/clariface-v1.1.0-signing-info.txt
