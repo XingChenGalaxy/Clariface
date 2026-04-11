@@ -273,7 +273,7 @@ class ScreenCaptureService : Service() {
 
         val metricsIntent = Intent(ACTION_METRICS).apply {
             setPackage(packageName)
-            putExtra(EXTRA_PROBABILITY, decision.smoothedProbability)
+            putExtra(EXTRA_PROBABILITY, output.probability)
             putExtra(EXTRA_LABEL, decision.label)
             putExtra(EXTRA_DETECTION_MS, output.elapsedMs)
             putExtra(EXTRA_ANALYZER_FPS, analyzerFps)
@@ -283,10 +283,9 @@ class ScreenCaptureService : Service() {
         sendBroadcast(metricsIntent)
 
         overlayController?.update(
-            probability = decision.smoothedProbability,
+            probability = output.probability,
             fps = analyzerFps,
             latencyMs = output.elapsedMs,
-            label = decision.label,
             isAlert = decision.isAlert,
             stableDisplayLabel = stableOverlayState
         )
